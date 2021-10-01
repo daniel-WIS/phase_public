@@ -1,0 +1,20 @@
+#!/bin/bash
+WORKING_DIR="$( pwd )" 
+
+cat <<STARTUP_MESSAGE
+
+This script will automatically look for all required input files in the current dir: 
+$WORKING_DIR
+Use options to specify custom input files.
+To see all available options run: ./process_results.R --help
+
+STARTUP_MESSAGE
+
+read -p "Continue? [y/n] " -n 1 -r
+
+if [[ $REPLY =~ ^[Yy]$ ]]
+then
+    
+	echo -e "\nyoffi"
+
+fi
