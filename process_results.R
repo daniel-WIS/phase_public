@@ -11,9 +11,9 @@ option_list = list(
   make_option(c("-r", "--results_txt_path"), type="character", default=NULL, 
               help="Absolute Path to folder that contains result .txt files", metavar="character"),
   make_option(c("-w", "--wells"), type="integer", default=384, 
-              help="Absolute Path to folder that contains result .txt files", metavar="number"),
+              help="Amount of wells in the imaging plate", metavar="number"),
   make_option(c("-c", "--column_to_measure"), type="character", default="_int_b5", 
-              help="Absolute Path to folder that contains result .txt files", metavar="character"),
+              help="Which bin to use for Fluorescence Intensity. Default is Mean Intensity (_int_b5)", metavar="character"),
   make_option(c("-o", "--out_dir"), type="character", default=NULL, 
               help="Absolute Path to Output Folder", metavar="character")
   
@@ -39,16 +39,15 @@ if (Sys.info()['sysname'] == "Darwin") {
   source("/Users/d/phase/Multiwell.R")
   source("/Users/d/phase/general.R")
   source("/Users/d/phase/MicroscopeToolBox.R")
+  source("/Users/d/phase_public_final/postprocess_result_txt.R")
   
 }else if (Sys.info()['sysname'] == "Linux") {
   os.foldername <- "/media"
   source("/home/d/phase_private_final/uscope_tools/Multiwell.R")
   source("/home/d/phase_private_final/uscope_tools/general.R")
   source("/home/d/phase_private_final/uscope_tools/MicroscopeToolBox.R")
+  source("/home/d/phase_public_final/postprocess_result_txt.R")
 }
-
-#source("/home/d/phase_public_final/postprocess_result_txt.R")
-#source("/home/d/phase_public_final/valvar_diploid_plot_functions.R")
 
 
 if(is.null(opt$working_dir)) {
@@ -76,6 +75,15 @@ if (is.null(opt$results_txt_path)) {
   if (length(opt$results_txt_path)<1) stop("No results folder detected. Please keep exactly 1 folder in the directory. The name has to be images_output (not case sensitive)")
 }
 
+if (is.null(opt$out_dir)) {
+  #Check whether folder "results" exist, create if not and assign to opt$out_dir
+  OUT_PATH = paste(opt$working_dir,"results",sep = "/")
+  if( ! file.exists ( OUT_PATH ) ){
+    dir.create(OUT_PATH, showWarnings = TRUE)
+  } 
+    opt$out_dir = OUT_PATH
+  }
+
 cat(
   "The current working directory is: ", opt$working_dir, "\n",
   "The .nd file path is: ",opt$nd_folder_path, "\n",
@@ -84,22 +92,19 @@ cat(
   sep = ""
 )
 
-# pdef_head <- colnames(read.csv(opt$pdef_path,sep=",")) #get column names of pdef file
-# CHANNELS_INPUT <- unlist(lapply(pdef_head,function(x) if(x=="GFP" | x=="RFP" | x=="BFP") x))
-# 
-# design = microscope.get.design(
-#   F = opt$nd_folder_path,
-#   D = c("comp"),
-#   PDEF = opt$pdef_path,
-#   FORMAT = opt$wells,
-#   OUT = opt$results_txt_path,
-#   CHANELS = CHANNELS_INPUT,
-#   MEASURE.COL = opt$column_to_measure,
-#   DIR.res = opt$out_dir
-# )
-# 
-# postprocess_result_txt(design.file = design, min.cell.size = 1000, max.cell.size = 2500, brightfield.cutoff = 0.8)
-# #do normalization now, but ask for it with if condition
-# 
-# 
-# save(list=ls(),file = paste0(data.name,"_ready_to_analyze.RData"))
+pdef_head <- colnames(read.csv(opt$pdef_path,sep=",")) #get column names of pdef file
+CHANNELS_INPUT <- unlist(lapply(pdef_head,function(x) if(x=="GFP" | x=="RFP" | x=="BFP") x))
+
+design = microscope.get.design(
+  F = opt$nd_folder_path,
+  D = c("comp"),
+  PDEF = opt$pdef_path,
+  FORMAT = opt$wells,
+  OUT = opt$results_txt_path,
+  CHANELS = CHANNELS_INPUT,
+  MEASURE.COL = opt$column_to_measure,
+  DIR.res = opt$out_dir
+)
+
+dat.ready_to_analyze <- postprocess_result_txt(design.file = design, min.cell.size = 1000, max.cell.size = 2500, brightfield.cutoff = 0.8)
+save(list=ls(),file = paste0("data_ready_to_analyze.RData"))
